@@ -49,6 +49,18 @@
         contenedor.appendChild(div);
       });
     });
+// Función para leer el parámetro ?mesa=mesa_1
+function getMesaDesdeURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mesa') || 'mesa_0'; // valor por defecto si no se pasa
+}
+
+set(ref(database, 'pedidos/' + mesaSeleccionada), {
+  platos: pedido
+});
+
+const mesaSeleccionada = getMesaDesdeURL();
+
   </script>
 </body>
 </html>
