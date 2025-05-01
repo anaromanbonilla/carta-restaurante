@@ -82,6 +82,17 @@
       });
       totalSpan.textContent = total.toFixed(2) + '€';
     }
+// Función para leer el parámetro ?mesa=mesa_1
+function getMesaDesdeURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mesa') || 'mesa_0'; // valor por defecto si no se pasa
+}
+
+const mesaSeleccionada = getMesaDesdeURL();
+
+set(ref(database, 'pedidos/' + mesaSeleccionada), {
+  platos: pedido
+});
 
     function confirmOrder() {
       if (cart.length === 0) return alert("El carrito está vacío.");
