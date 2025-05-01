@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedidos Cocina</title>
+  <style>
+    body { font-family: sans-serif; background: #fff; padding: 1rem; }
+    .pedido { border: 1px solid #ccc; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Pedidos en Cocina</h1>
+  <div id="pedidos"></div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ⚠️ Usa los mismos datos que en index.html
+    const firebaseConfig = {
+      apiKey: "AIzaSyDywTYumezWcgP7HxTfKi-6_nkXNdou2X4",
+      authDomain: "carta-virtual-b4483.firebaseapp.com",
+      projectId: "carta-virtual-b4483",
+      storageBucket: "carta-virtual-b4483.firebasestorage.app",
+      messagingSenderId: "413466580958",
+      appId: "1:413466580958:web:398833f7020dd7cf836f4f",
+    };
+
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const contenedor = document.getElementById('pedidos');
+
+    db.collection("pedidos").orderBy("creadoEn", "desc").onSnapshot(snapshot => {
+      contenedor.innerHTML = "";
+      snapshot.forEach(doc => {
+        const pedido = doc.data();
+        const div = document.createElement('div');
+        div.className = "pedido";
+        div.innerHTML = `
+          <strong>Pedido:</strong><br>
+          <ul>
+            ${pedido.items.map(item => `<li>${item.qty} x ${item.name}</li>`).join('')}
+          </ul>
+          <em>${new Date(pedido.creadoEn.toDate()).toLocaleTimeString()}</em>
+        `;
+        contenedor.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>

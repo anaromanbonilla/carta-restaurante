@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Carta Virtual</title>
+  <style>
+    body { font-family: sans-serif; margin: 0 1rem; background: #f5f5f5; }
+    .menu-section { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .dish { background: white; border-radius: 8px; width: 200px; padding: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .dish img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+    .dish button { margin-top: 0.5rem; padding: 0.5rem; background: green; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #cart { position: fixed; right: 1rem; top: 1rem; background: white; padding: 1rem; width: 280px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  </style>
+</head>
+<body>
+
+  <h1>Carta Virtual</h1>
+
+  <h2>Platos</h2>
+  <div class="menu-section">
+    <div class="dish" data-name="Pizza Margarita" data-price="8.5">
+      <img src="https://source.unsplash.com/200x130/?pizza" alt="Pizza">
+      <h4>Pizza Margarita</h4>
+      <p>8,50€</p>
+      <button onclick="addToCart(this)">Añadir</button>
+    </div>
+    <div class="dish" data-name="Ensalada César" data-price="6.0">
+      <img src="https://source.unsplash.com/200x130/?salad" alt="Ensalada">
+      <h4>Ensalada César</h4>
+      <p>6,00€</p>
+      <button onclick="addToCart(this)">Añadir</button>
+    </div>
+  </div>
+
+  <div id="cart">
+    <h3>Tu pedido</h3>
+    <ul id="cart-items"></ul>
+    <p>Total: <span id="total">0.00€</span></p>
+    <button onclick="confirmOrder()">Confirmar pedido</button>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ⚠️ Sustituye estos datos por los de tu proyecto Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDywTYumezWcgP7HxTfKi-6_nkXNdou2X4",
+      authDomain: "carta-virtual-b4483.firebaseapp.com",
+      projectId: "carta-virtual-b4483",
+      storageBucket: "carta-virtual-b4483.firebasestorage.app",
+      messagingSenderId: "413466580958",
+      appId: "1:413466580958:web:398833f7020dd7cf836f4f",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const cart = [];
+
+    function addToCart(btn) {
+      const dish = btn.parentElement;
+      const name = dish.dataset.name;
+      const price = parseFloat(dish.dataset.price);
+      const existing = cart.find(i => i.name === name);
+      if (existing) existing.qty++;
+      else cart.push({ name, price, qty: 1 });
+      renderCart();
+    }
+
+    function renderCart() {
+      const list = document.getElementById('cart-items');
+      const totalSpan = document.getElementById('total');
+      list.innerHTML = '';
+      let total = 0;
+      cart.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.qty} x ${item.name} - ${(item.qty * item.price).toFixed(2)}€`;
+        list.appendChild(li);
+        total += item.qty * item.price;
+      });
+      totalSpan.textContent = total.toFixed(2) + '€';
+    }
+
+    function confirmOrder() {
+      if (cart.length === 0) return alert("El carrito está vacío.");
+      const timestamp = new Date();
+      db.collection("pedidos").add({
+        items: cart,
+        creadoEn: timestamp,
+        estado: "pendiente"
+      }).then(() => {
+        alert("Pedido enviado a cocina.");
+        cart.length = 0;
+        renderCart();
+      }).catch(err => alert("Error al enviar pedido: " + err));
+    }
+  </script>
+
+</body>
+</html>
