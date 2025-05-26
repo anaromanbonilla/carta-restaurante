@@ -1,196 +1,142 @@
+<!-- mesa1.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Carta - Mesa 1</title>
+  <title>Pedido - Mesa 1</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-    h1, h2 { text-align: center; }
-    .categoria { margin-top: 30px; }
-    .platos { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-    .plato { border: 1px solid #ddd; border-radius: 10px; width: 250px; padding: 10px; text-align: center; }
-    .plato img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; }
-    .pedido { position: fixed; bottom: 20px; right: 20px; background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    body { font-family: sans-serif; padding: 20px; }
+    .plato { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .categoria { margin-bottom: 20px; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+</head>
+<body>
+  <h1>Pedido - Mesa 1</h1>
 
+  <div class="categoria">
+    <details open>
+      <summary>Entrantes</summary>
+      <div class="plato" data-nombre="Tortilla" data-categoria="Entrantes">
+        <img src="https://via.placeholder.com/100" alt="Tortilla">
+        <h3>Tortilla</h3>
+        <p>Tortilla española tradicional</p>
+        <input type="number" value="1" min="1"> <button onclick="add(this)">Añadir</button>
+      </div>
+      <div class="plato" data-nombre="Croquetas" data-categoria="Entrantes">
+        <img src="https://via.placeholder.com/100" alt="Croquetas">
+        <h3>Croquetas</h3>
+        <p>De jamón ibérico</p>
+        <input type="number" value="1" min="1"> <button onclick="add(this)">Añadir</button>
+      </div>
+      <div class="plato" data-nombre="Ensaladilla" data-categoria="Entrantes">
+        <img src="https://via.placeholder.com/100" alt="Ensaladilla">
+        <h3>Ensaladilla</h3>
+        <p>Casera con atún y mayonesa</p>
+        <input type="number" value="1" min="1"> <button onclick="add(this)">Añadir</button>
+      </div>
+    </details>
+  </div>
+
+  <h2>Pedido</h2>
+  <div id="pedido"></div>
+  <textarea id="comentarios" placeholder="Comentarios..." rows="3" cols="30"></textarea><br>
+  <button onclick="enviarPedido()">Enviar Pedido</button>
+
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDywTYumezWcgP7HxTfKi-6_nkXNdou2X4",
       authDomain: "carta-virtual-b4483.firebaseapp.com",
-      databaseURL: "carta-virtual-b4483.firebaseapp.com",
+      databaseURL: "https://carta-virtual-b4483.firebaseio.com",
       projectId: "carta-virtual-b4483",
-      storageBucket: "carta-virtual-b4483.firebasestorage.app",
+      storageBucket: "carta-virtual-b4483.appspot.com",
       messagingSenderId: "413466580958",
       appId: "1:413466580958:web:398833f7020dd7cf836f4f"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-    const mesa = "mesa_1";
-    const pedido = [];
+    const mesa = "Mesa 1";
+    let pedido = {};
 
-    window.agregarAlPedido = function(nombre, precio) {
-      pedido.push({ nombre, precio });
-      alert(`Agregado al pedido: ${nombre}`);
+    function add(btn) {
+      const plato = btn.closest('.plato');
+      const nombre = plato.dataset.nombre;
+      const categoria = plato.dataset.categoria;
+      const cantidad = parseInt(plato.querySelector('input').value);
+
+      if (!pedido[nombre]) pedido[nombre] = { cantidad: 0, categoria };
+      pedido[nombre].cantidad += cantidad;
+      renderPedido();
     }
 
-    window.confirmarPedido = function() {
-      if (pedido.length === 0) return alert("No has añadido nada al pedido.");
-      set(ref(database, 'pedidos/' + mesa), { platos: pedido });
-      alert("Pedido enviado a cocina.");
-      location.reload();
+    function renderPedido() {
+      const div = document.getElementById("pedido");
+      div.innerHTML = "";
+      for (let nombre in pedido) {
+        div.innerHTML += `
+          <div>
+            ${pedido[nombre].cantidad} x ${nombre}
+            <button onclick="modificarCantidad('${nombre}', -1)">-</button>
+            <button onclick="modificarCantidad('${nombre}', 1)">+</button>
+            <button onclick="eliminarPlato('${nombre}')">Eliminar</button>
+          </div>
+        `;
+      }
+    }
+
+    function modificarCantidad(nombre, delta) {
+      pedido[nombre].cantidad += delta;
+      if (pedido[nombre].cantidad <= 0) delete pedido[nombre];
+      renderPedido();
+    }
+
+    function eliminarPlato(nombre) {
+      delete pedido[nombre];
+      renderPedido();
+    }
+
+    function enviarPedido() {
+      const comentarios = document.getElementById("comentarios").value;
+      const nuevoPedido = { mesa, pedido, comentarios, timestamp: Date.now() };
+      db.ref("pedidos").push(nuevoPedido);
+      alert("Pedido enviado");
+      pedido = {};
+      renderPedido();
+      document.getElementById("comentarios").value = "";
     }
   </script>
-</head>
-<body>
-  <h1>Carta - Mesa 1</h1>
+</body>
+</html>
 
-  <div class="categoria">
-    <h2>Entrantes</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Bruschetta">
-        <h3>Bruschetta</h3>
-        <p>Pan tostado con tomate y albahaca</p>
-        <button onclick="agregarAlPedido('Bruschetta', 5.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Croquetas">
-        <h3>Croquetas</h3>
-        <p>De jamón ibérico, caseras</p>
-        <button onclick="agregarAlPedido('Croquetas', 6.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Ensalada César">
-        <h3>Ensalada César</h3>
-        <p>Con pollo y parmesano</p>
-        <button onclick="agregarAlPedido('Ensalada César', 7.00)">Añadir</button>
-      </div>
-    </div>
-  </div>
+    function actualizarResumen() {
+      const resumen = document.getElementById("resumen");
+      resumen.innerHTML = "";
+      for (let nombre in pedido) {
+        const item = pedido[nombre];
+        const div = document.createElement("div");
+        div.className = "pedido-item";
+        div.innerHTML = `
+          <span>${item.cantidad} x ${nombre}</span>
+          <span>
+            <button onclick="cambiarCantidad('${nombre}', -1)">-</button>
+            <button onclick="cambiarCantidad('${nombre}', 1)">+</button>
+            <button onclick="eliminar('${nombre}')">Eliminar</button>
+          </span>
+        `;
+        resumen.appendChild(div);
+      }
+    }
 
-  <div class="categoria">
-    <h2>Sopas</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Sopa de cebolla">
-        <h3>Sopa de cebolla</h3>
-        <p>Receta tradicional francesa</p>
-        <button onclick="agregarAlPedido('Sopa de cebolla', 4.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Gazpacho">
-        <h3>Gazpacho</h3>
-        <p>Frío, ideal para verano</p>
-        <button onclick="agregarAlPedido('Gazpacho', 4.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Crema de calabaza">
-        <h3>Crema de calabaza</h3>
-        <p>Suave y cremosa</p>
-        <button onclick="agregarAlPedido('Crema de calabaza', 4.50)">Añadir</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="categoria">
-    <h2>Carnes</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Solomillo">
-        <h3>Solomillo</h3>
-        <p>Con salsa de pimienta</p>
-        <button onclick="agregarAlPedido('Solomillo', 14.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Costillas BBQ">
-        <h3>Costillas BBQ</h3>
-        <p>A la brasa con salsa barbacoa</p>
-        <button onclick="agregarAlPedido('Costillas BBQ', 13.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Pollo al ajillo">
-        <h3>Pollo al ajillo</h3>
-        <p>Receta casera</p>
-        <button onclick="agregarAlPedido('Pollo al ajillo', 10.00)">Añadir</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="categoria">
-    <h2>Vegetarianos</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Pasta vegetal">
-        <h3>Pasta vegetal</h3>
-        <p>Con verduras salteadas</p>
-        <button onclick="agregarAlPedido('Pasta vegetal', 9.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Tofu al curry">
-        <h3>Tofu al curry</h3>
-        <p>Tofu con salsa de curry</p>
-        <button onclick="agregarAlPedido('Tofu al curry', 8.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Berenjenas rellenas">
-        <h3>Berenjenas rellenas</h3>
-        <p>Con arroz y verduras</p>
-        <button onclick="agregarAlPedido('Berenjenas rellenas', 9.50)">Añadir</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="categoria">
-    <h2>Postres</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Tarta de queso">
-        <h3>Tarta de queso</h3>
-        <p>Con mermelada de frutos rojos</p>
-        <button onclick="agregarAlPedido('Tarta de queso', 5.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Brownie">
-        <h3>Brownie</h3>
-        <p>Con helado de vainilla</p>
-        <button onclick="agregarAlPedido('Brownie', 5.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Helado artesanal">
-        <h3>Helado artesanal</h3>
-        <p>Sabores variados</p>
-        <button onclick="agregarAlPedido('Helado artesanal', 4.50)">Añadir</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="categoria">
-    <h2>Bebidas</h2>
-    <div class="platos">
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Agua">
-        <h3>Agua</h3>
-        <p>Botella 500ml</p>
-        <button onclick="agregarAlPedido('Agua', 1.50)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Refresco">
-        <h3>Refresco</h3>
-        <p>Diversos sabores</p>
-        <button onclick="agregarAlPedido('Refresco', 2.00)">Añadir</button>
-      </div>
-      <div class="plato">
-        <img src="https://via.placeholder.com/250x150" alt="Copa de vino">
-        <h3>Copa de vino</h3>
-        <p>Vino tinto o blanco</p>
-        <button onclick="agregarAlPedido('Copa de vino', 3.00)">Añadir</button>
-      </div>
-    </div>
-  </div>
-
-  <button class="pedido" onclick="confirmarPedido()">Confirmar Pedido</button>
+    function enviarPedido() {
+      const comentarios = document.getElementById("comentarios").value;
+      const guardado = JSON.parse(localStorage.getItem("pedidos")) || [];
+      guardado.push({ mesa, pedido, comentarios });
+      localStorage.setItem("pedidos", JSON.stringify(guardado));
+      alert("Pedido enviado");
+      window.location.reload();
+    }
+  </script>
 </body>
 </html>
