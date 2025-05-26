@@ -1,97 +1,74 @@
+<!-- cocina.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cocina - Pedidos</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { text-align: center; }
-    .pedido-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f8f8f8;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 6px;
-    }
-    .cantidad {
-      font-weight: bold;
-    }
-    .btn-clear {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  <title>Cocina</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Resumen para Cocina</h1>
+  <div id="resumen"></div>
 
-  const firebaseConfig = {
+  <script>
+    const firebaseConfig = {
       apiKey: "AIzaSyDywTYumezWcgP7HxTfKi-6_nkXNdou2X4",
       authDomain: "carta-virtual-b4483.firebaseapp.com",
-      databaseURL: "carta-virtual-b4483.firebaseapp.com",
+      databaseURL: "https://carta-virtual-b4483.firebaseio.com",
       projectId: "carta-virtual-b4483",
       storageBucket: "carta-virtual-b4483.firebasestorage.app",
       messagingSenderId: "413466580958",
       appId: "1:413466580958:web:398833f7020dd7cf836f4f"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
+    const resumen = {};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const pedidosRef = ref(db, 'pedidos');
-
-    const pedidosContainer = document.createElement('div');
-    document.body.appendChild(pedidosContainer);
-
-    onValue(pedidosRef, (snapshot) => {
-      const data = snapshot.val();
-      const todosLosPlatos = {};
-      const tiempoPedidos = [];
-
-      pedidosContainer.innerHTML = '';
-
-      for (const mesa in data) {
-        const platos = data[mesa].platos || [];
-        platos.forEach(plato => {
-          const clave = plato.nombre;
-          if (!todosLosPlatos[clave]) {
-            todosLosPlatos[clave] = { cantidad: 0 };
+    function actualizarResumen() {
+      db.ref('pedidos').once('value', snapshot => {
+        const resumenPlatos = {};
+        snapshot.forEach(child => {
+          const datos = child.val();
+          const pedido = datos.pedido;
+          for (let nombre in pedido) {
+            if (pedido[nombre].categoria !== 'Bebidas') {
+              if (!resumenPlatos[nombre]) resumenPlatos[nombre] = 0;
+              resumenPlatos[nombre] += pedido[nombre].cantidad;
+            }
           }
-          todosLosPlatos[clave].cantidad++;
         });
-        tiempoPedidos.push({ mesa, timestamp: data[mesa].timestamp || 0 });
-      }
 
-      for (const nombre in todosLosPlatos) {
-        const div = document.createElement('div');
-        div.className = 'pedido-item';
-        div.innerHTML = `
-          <span>${nombre}</span>
-          <span class="cantidad">x ${todosLosPlatos[nombre].cantidad}</span>
-        `;
-        pedidosContainer.appendChild(div);
-      }
-
-      // Botón para limpiar pedidos
-      const btn = document.createElement('button');
-      btn.innerText = 'Eliminar todos los pedidos';
-      btn.className = 'btn-clear';
-      btn.onclick = () => {
-        if (confirm('¿Seguro que deseas borrar todos los pedidos?')) {
-          remove(pedidosRef);
+        const div = document.getElementById("resumen");
+        div.innerHTML = '';
+        for (let nombre in resumenPlatos) {
+          const contenedor = document.createElement("div");
+          contenedor.innerHTML = `${resumenPlatos[nombre]} x ${nombre} <button onclick="eliminarPlato('${nombre}')">Servido</button>`;
+          div.appendChild(contenedor);
         }
-      };
-      pedidosContainer.appendChild(btn);
-    });
+      });
+    }
+
+    function eliminarPlato(nombre) {
+      db.ref('pedidos').once('value', snapshot => {
+        snapshot.forEach(child => {
+          const key = child.key;
+          const datos = child.val();
+          const pedido = datos.pedido;
+          if (pedido[nombre]) {
+            delete pedido[nombre];
+            db.ref(`pedidos/${key}/pedido`).set(pedido);
+          }
+        });
+        actualizarResumen();
+      });
+    }
+
+    actualizarResumen();
+    setInterval(actualizarResumen, 5000);
   </script>
-</head>
-<body>
-  <h1>Pedidos en Cocina</h1>
 </body>
 </html>
+
+
