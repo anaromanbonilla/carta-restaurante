@@ -2,65 +2,96 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Pedidos Cocina</title>
+  <title>Cocina - Pedidos</title>
   <style>
-    body { font-family: sans-serif; background: #fff; padding: 1rem; }
-    .pedido { border: 1px solid #ccc; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: #f9f9f9; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { text-align: center; }
+    .pedido-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8f8f8;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 6px;
+    }
+    .cantidad {
+      font-weight: bold;
+    }
+    .btn-clear {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   </style>
-</head>
-<body>
-  <h1>Pedidos en Cocina</h1>
-  <div id="pedidos"></div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-  <script>
-    // ⚠️ Usa los mismos datos que en index.html
-    const firebaseConfig = {
+  const firebaseConfig = {
       apiKey: "AIzaSyDywTYumezWcgP7HxTfKi-6_nkXNdou2X4",
       authDomain: "carta-virtual-b4483.firebaseapp.com",
+      databaseURL: "carta-virtual-b4483.firebaseapp.com",
       projectId: "carta-virtual-b4483",
       storageBucket: "carta-virtual-b4483.firebasestorage.app",
       messagingSenderId: "413466580958",
-      appId: "1:413466580958:web:398833f7020dd7cf836f4f",
+      appId: "1:413466580958:web:398833f7020dd7cf836f4f"
     };
 
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const pedidosRef = ref(db, 'pedidos');
 
-    const contenedor = document.getElementById('pedidos');
+    const pedidosContainer = document.createElement('div');
+    document.body.appendChild(pedidosContainer);
 
-    db.collection("pedidos").orderBy("creadoEn", "desc").onSnapshot(snapshot => {
-      contenedor.innerHTML = "";
-      snapshot.forEach(doc => {
-        const pedido = doc.data();
+    onValue(pedidosRef, (snapshot) => {
+      const data = snapshot.val();
+      const todosLosPlatos = {};
+      const tiempoPedidos = [];
+
+      pedidosContainer.innerHTML = '';
+
+      for (const mesa in data) {
+        const platos = data[mesa].platos || [];
+        platos.forEach(plato => {
+          const clave = plato.nombre;
+          if (!todosLosPlatos[clave]) {
+            todosLosPlatos[clave] = { cantidad: 0 };
+          }
+          todosLosPlatos[clave].cantidad++;
+        });
+        tiempoPedidos.push({ mesa, timestamp: data[mesa].timestamp || 0 });
+      }
+
+      for (const nombre in todosLosPlatos) {
         const div = document.createElement('div');
-        div.className = "pedido";
+        div.className = 'pedido-item';
         div.innerHTML = `
-          <strong>Pedido:</strong><br>
-          <ul>
-            ${pedido.items.map(item => `<li>${item.qty} x ${item.name}</li>`).join('')}
-          </ul>
-          <em>${new Date(pedido.creadoEn.toDate()).toLocaleTimeString()}</em>
+          <span>${nombre}</span>
+          <span class="cantidad">x ${todosLosPlatos[nombre].cantidad}</span>
         `;
-        contenedor.appendChild(div);
-      });
+        pedidosContainer.appendChild(div);
+      }
+
+      // Botón para limpiar pedidos
+      const btn = document.createElement('button');
+      btn.innerText = 'Eliminar todos los pedidos';
+      btn.className = 'btn-clear';
+      btn.onclick = () => {
+        if (confirm('¿Seguro que deseas borrar todos los pedidos?')) {
+          remove(pedidosRef);
+        }
+      };
+      pedidosContainer.appendChild(btn);
     });
-// Función para leer el parámetro ?mesa=mesa_1
-function getMesaDesdeURL() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('mesa') || 'mesa_0'; // valor por defecto si no se pasa
-}
-
-set(ref(database, 'pedidos/' + mesaSeleccionada), {
-  platos: pedido
-});
-
-const mesaSeleccionada = getMesaDesdeURL();
-
   </script>
+</head>
+<body>
+  <h1>Pedidos en Cocina</h1>
 </body>
 </html>
